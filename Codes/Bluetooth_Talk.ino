@@ -25,7 +25,7 @@ SoftwareSerial bt(8,9);//RX,TX
 void setup() {
   // put your setup code here, to run once:
 Serial.begin(9600);
-bt.begin(9600);
+bt.begin(38400);
 
 
 }
