@@ -1,29 +1,49 @@
-#include <ADXL345.h>
+/*
+ * Wireless Accelerometer System
+ * Uses 1xHC-05 and 2xADXL345 accelerometers.
+ * Accelerometer I2C addresses should be adjusted via SDO/ALT.ADDR pin.
+ * Data Rate is 200 Hz.
+ * 
+ * HC-05 Bluetooth module should be connected to pins 7(RX->TX) and 8(TX->RX).
+ * 
+ * Author
+ * Guray Gurkan
+ * 
+ * Date
+ * 07 Jan 2018  
+ */
+
+#include <ADXL345dual.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
 
 SoftwareSerial bt(7, 8); //RX,TX
 unsigned long START;
-int trigger=9;
+
 
 bool BTmode;
 bool go;
-
 unsigned long tic;
+int BTpin=12;
 
-ADXL345 accelerometer;
+ADXL345 acc0, acc1;
 
-int n;
 
 void setup() {
   // put your setup code here, to run once:
 
-  pinMode(trigger,OUTPUT);
+  
   //Serial.begin(115200);
+  pinMode(BTpin, OUTPUT);
+  digitalWrite(BTpin,LOW);
+
+  delay(3000);
+  digitalWrite(BTpin,HIGH);
+  delay(1000);
   bt.begin(115200);
   delay(1000);
-  bt.println("Waiting For Start (g)...");
+  //bt.println("Waiting For Start (g)...");
   //Serial.println("Waiting For Start (g)...");
   do
   {
@@ -33,77 +53,103 @@ void setup() {
   //while (Serial.read() != 'g');
   //bt.println("Connection OK...");
 
-  accelerometer.begin();
   delay(10);
-
-  accelerometer.setDataRate(ADXL345_DATARATE_200HZ);
+  acc0.begin(0);
   delay(1);
-  accelerometer.setRange(ADXL345_RANGE_2G);
+  acc1.begin(1);
+  delay(1);
+  acc0.setDataRate(0, ADXL345_DATARATE_200HZ);
+  delay(1);
+  acc1.setDataRate(1, ADXL345_DATARATE_200HZ);
+  delay(1);
+  acc0.setRange(0, ADXL345_RANGE_2G);
+  delay(1);
+  acc1.setRange(1, ADXL345_RANGE_2G);
   delay(1);
   //bt.println("Accelerometer OK");
-  delay(10);
+  delay(1);
+  
   go = true;
-  n = 0;
+
   START = millis();
-  PORTB &= ~0x02;
+
 }
 
 void loop() {
 
   if (bt.available() == 0 and go)
-  //if (Serial.available() == 0 and go)
+    //if (Serial.available() == 0 and go)
   {
-    
-    PORTB |=0x02;
-    Vector raw = accelerometer.readRaw();
+
+ 
+    Vector raw = acc0.readRaw(0);
+//     do
+//    {
+//    }
+//    while (!acc0.readActivites(0).isDataReady);
+//    
+    Vector raw2 = acc1.readRaw(1);
     do
     {
-      }
-    while(!accelerometer.readActivites().isDataReady);
-    
-    /*  
-            
-            
+    }
+    while (!acc1.readActivites(1).isDataReady);
+
+    /*
+
+
             Serial.print((int) raw.XAxis);
             Serial.print(",");
             Serial.print((int)raw.YAxis);
             Serial.print(",");
             Serial.println((int)raw.ZAxis);
-            
-      */      
-      
-      //         BT Mode
-      
-      bt.print((int) raw.XAxis);
-      bt.print(",");
-      bt.print((int)raw.YAxis);
-      bt.print(",");
-      bt.println((int)raw.ZAxis);
+
+    */
+
+    //         BT Mode
+
+    bt.print((int) raw.XAxis);
+    bt.print(",");
+    bt.print((int)raw.YAxis);
+    bt.print(",");
+    bt.print((int)raw.ZAxis);
+    bt.print(",");
+    bt.print((int) raw2.XAxis);
+    bt.print(",");
+    bt.print((int)raw2.YAxis);
+    bt.print(",");
+    bt.println((int)raw2.ZAxis);
+
     
-    PORTB &=~0x02;
-    delayMicroseconds(1000);
-    
+    delayMicroseconds(10);
+
   }
-  
+
   else if (bt.available())
   {
-    if (bt.read() == 'f')
+    byte val;
+    val = bt.read();
+    if (val == 'f')
     {
-      bt.println("Finished");
+      bt.println("");
       go = false;
     }
+    else if (val=='r')
+    {
+      asm volatile ("  jmp 0");
+    }
   }
-  
+
   /*
-  
+
     else if (Serial.available())
     {
       if (Serial.read() == 'f')
       {
-  
+
         Serial.println(millis() - START);
         go = false;
       }
     }
   */
+  delayMicroseconds(10);
 }
